@@ -1,0 +1,22 @@
+{
+  "name": "synyi-faas",
+  "version": "0.0.8",
+  "description": "",
+  "main": "./dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm run proto && rm -r dist && tsc",
+    "proto": "npx protoc --ts_out ./proto --proto_path proto proto/event.proto",
+    "pub": "npm run build && npm version patch && npm publish"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@protobuf-ts/plugin": "^2.1.0",
+    "nats": "^2.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.5.2"
+  }
+}

@@ -1,0 +1,46 @@
+syntax = "proto3";
+package proto;
+enum EventType {
+  HTTP = 0;
+}
+enum BodyType {
+  Raw = 0;
+  LINK = 1;
+}
+
+message ListString {
+  // Repeated field of dynamically typed values.
+  repeated string values = 1;
+}
+
+message Event {
+  string EventId = 1;
+  string SenderId = 2;
+  EventType Type = 3;
+  string Method = 4;
+  string Url = 5;
+  bytes Body = 6;
+  BodyType BodyType = 7;
+  string ContentType = 8;
+  repeated string Headers = 9;
+  string source = 10;
+  int32 ttl = 11;
+  // unix timestamp in milliseconds
+  int64 time = 12;
+  string Subject = 13;
+  string RequestId = 14;
+}
+
+message Response {
+  string EventId = 1;
+  bytes Body = 2;
+  BodyType BodyType = 3;
+  string ContentType = 4;
+  repeated string Headers = 5;
+  int32 Status = 6;
+  uint32 UsedTime = 7;
+  // unix timestamp in milliseconds
+  int64 time = 8;
+  string Subject = 9;
+  string RequestId = 10;
+}
