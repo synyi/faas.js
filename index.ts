@@ -179,7 +179,7 @@ async function prodInit(handler: (event: EventCtx) => Promise<any>) {
             }
         }
     })
-    setTimeout(() => {
+    setInterval(() => {
         nc.publish("sie-heartbeat", Buffer.from(JSON.stringify({
             Uptime: Math.round((Date.now() - startTime) / 1000),
             Name: target,
