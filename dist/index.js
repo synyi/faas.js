@@ -26,7 +26,8 @@ class EventCtx {
             headers: [],
             usedTime: 0,
             time: 0n,
-            subject: target
+            subject: target,
+            retry: false
         };
         for (let i = 0; i < event.headers.length / 2; i++) {
             this.reqHeaders.set(event.headers[2 * i], event.headers[2 * i + 1]);
@@ -38,7 +39,7 @@ class EventCtx {
     setResponseHeader(key, value) {
         this.respHeaders.set(key, value);
     }
-    response(body) {
+    response(status, body) {
         if (typeof body == "string") {
             this.resp.body = Buffer.from(body, 'utf8');
             this.setResponseHeader("content-type", "text/plain;charset=utf8");
@@ -53,21 +54,22 @@ class EventCtx {
             this.resp.body = Buffer.from(JSON.stringify(body), 'utf8');
             this.setResponseHeader("content-type", "application/json");
         }
+        this.resp.status = status;
         this.setResponseHeader("content-length", this.resp.body.byteLength);
         this.sender();
     }
-    error(status, err) {
-        if (status < 200 || status > 599) {
-            status = 500;
-        }
-        this.resp.status = status;
-        this.response(err);
-    }
+    // error(status: number, err: any) {
+    //     if (status < 200 || status > 599) {
+    //         status = 500
+    //     }
+    //     this.response(status,err)
+    // }
     getResponseBinary() {
         this.resp.headers = buildHeaders(this.respHeaders);
         return event_1.Response.toBinary(this.resp);
     }
-    needRetry() {
+    needRetry(reason) {
+        this.retry(reason);
     }
 }
 async function init(handler) {
@@ -114,8 +116,6 @@ async function prodInit(handler) {
             opts.queue("dg." + stream);
             let iter = await js.subscribe(stream, opts);
             for await (const m of iter) {
-                // do something with the message
-                // and if the consumer is not set to auto-ack, ack!
                 let event;
                 const start = Date.now();
                 try {
@@ -123,7 +123,7 @@ async function prodInit(handler) {
                 }
                 catch (e) {
                     console.error(e);
-                    m.nak();
+                    m.term();
                 }
                 const c = new EventCtx(event, target);
                 let sent = false;
@@ -141,7 +141,9 @@ async function prodInit(handler) {
                         m.term();
                     }
                 };
-                c.retry = () => {
+                c.retry = (reason) => {
+                    c.resp.retry = true;
+                    c.response(500, reason);
                     m.nak();
                     sent = true;
                 };
@@ -153,17 +155,17 @@ async function prodInit(handler) {
                     const result = await handler(c);
                     clearTimeout(t);
                     if (!sent) {
-                        c.response(result);
+                        c.response(200, result);
                     }
                     m.ack();
                 }
                 catch (e) {
                     console.error(e);
                     if (!sent) {
-                        c.error(500, e.toString());
+                        c.response(500, e.toString());
                         c.sender();
                     }
-                    m.term();
+                    m.ack();
                 }
             }
         }

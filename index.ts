@@ -31,7 +31,8 @@ class EventCtx {
             headers: [],
             usedTime: 0,
             time: 0n,
-            subject: target
+            subject: target,
+            retry:false
         }
         for (let i = 0; i < event.headers.length / 2; i++) {
             this.reqHeaders.set(event.headers[2 * i], event.headers[2 * i + 1])
