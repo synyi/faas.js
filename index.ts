@@ -180,7 +180,7 @@ async function prodInit(handler: (event: EventCtx) => Promise<any>) {
         }
     })
     setTimeout(() => {
-        nc.publish("sie-hearbeat", Buffer.from(JSON.stringify({
+        nc.publish("sie-heartbeat", Buffer.from(JSON.stringify({
             Uptime: Math.round((Date.now() - startTime) / 1000),
             Name: target,
             Status: 'ok',
