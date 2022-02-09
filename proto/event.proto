@@ -43,4 +43,5 @@ message Response {
   int64 time = 8;
   string Subject = 9;
   string RequestId = 10;
+  bool Retry = 11;
 }

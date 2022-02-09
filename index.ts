@@ -18,7 +18,7 @@ class EventCtx {
     private reqHeaders = new Map<string, string>()
     private respHeaders = new Map<string, string>()
     sender: () => void;
-    retry: () => void
+    retry: (reason) => void
 
     constructor(public event: Event, target: string) {
         this.resp = {
@@ -46,7 +46,7 @@ class EventCtx {
         this.respHeaders.set(key, value)
     }
 
-    response(body: any) {
+    response(status: number, body: any) {
         if (typeof body == "string") {
             this.resp.body = Buffer.from(body, 'utf8');
             this.setResponseHeader("content-type", "text/plain;charset=utf8")
@@ -58,25 +58,25 @@ class EventCtx {
             this.resp.body = Buffer.from(JSON.stringify(body), 'utf8');
             this.setResponseHeader("content-type", "application/json")
         }
+        this.resp.status = status
         this.setResponseHeader("content-length", this.resp.body.byteLength)
         this.sender()
     }
 
-    error(status: number, err: any) {
-        if (status < 200 || status > 599) {
-            status = 500
-        }
-        this.resp.status = status
-        this.response(err)
-    }
+    // error(status: number, err: any) {
+    //     if (status < 200 || status > 599) {
+    //         status = 500
+    //     }
+    //     this.response(status,err)
+    // }
 
     getResponseBinary(): Uint8Array {
         this.resp.headers = buildHeaders(this.respHeaders)
         return Response.toBinary(this.resp)
     }
 
-    needRetry() {
-
+    needRetry(reason: string) {
+        this.retry(reason)
     }
 }
 
@@ -127,15 +127,13 @@ async function prodInit(handler: (event: EventCtx) => Promise<any>) {
             opts.queue("dg." + stream)
             let iter = await js.subscribe(stream, opts);
             for await (const m of iter) {
-                // do something with the message
-                // and if the consumer is not set to auto-ack, ack!
                 let event: Event;
                 const start = Date.now()
                 try {
                     event = Event.fromBinary(m.data)
                 } catch (e) {
                     console.error(e)
-                    m.nak()
+                    m.term()
                 }
                 const c = new EventCtx(event, target)
                 let sent = false
@@ -152,7 +150,9 @@ async function prodInit(handler: (event: EventCtx) => Promise<any>) {
                         m.term()
                     }
                 }
-                c.retry = () => {
+                c.retry = (reason: string) => {
+                    c.resp.retry = true
+                    c.response(500, reason)
                     m.nak();
                     sent = true
                 }
@@ -164,16 +164,16 @@ async function prodInit(handler: (event: EventCtx) => Promise<any>) {
                     const result = await handler(c)
                     clearTimeout(t)
                     if (!sent) {
-                        c.response(result)
+                        c.response(200, result)
                     }
                     m.ack()
                 } catch (e) {
                     console.error(e);
                     if (!sent) {
-                        c.error(500, e.toString())
+                        c.response(500, e.toString())
                         c.sender()
                     }
-                    m.term()
+                    m.ack()
                 }
             }
         }

@@ -131,6 +131,10 @@ export interface Response {
      * @generated from protobuf field: string RequestId = 10 [json_name = "RequestId"];
      */
     requestId: string;
+    /**
+     * @generated from protobuf field: bool Retry = 11 [json_name = "Retry"];
+     */
+    retry: boolean;
 }
 /**
  * @generated from protobuf enum proto.EventType
@@ -352,11 +356,12 @@ class Response$Type extends MessageType<Response> {
             { no: 7, name: "UsedTime", kind: "scalar", jsonName: "UsedTime", T: 13 /*ScalarType.UINT32*/ },
             { no: 8, name: "time", kind: "scalar", T: 3 /*ScalarType.INT64*/, L: 0 /*LongType.BIGINT*/ },
             { no: 9, name: "Subject", kind: "scalar", jsonName: "Subject", T: 9 /*ScalarType.STRING*/ },
-            { no: 10, name: "RequestId", kind: "scalar", jsonName: "RequestId", T: 9 /*ScalarType.STRING*/ }
+            { no: 10, name: "RequestId", kind: "scalar", jsonName: "RequestId", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "Retry", kind: "scalar", jsonName: "Retry", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<Response>): Response {
-        const message = { eventId: "", body: new Uint8Array(0), bodyType: 0, contentType: "", headers: [], status: 0, usedTime: 0, time: 0n, subject: "", requestId: "" };
+        const message = { eventId: "", body: new Uint8Array(0), bodyType: 0, contentType: "", headers: [], status: 0, usedTime: 0, time: 0n, subject: "", requestId: "", retry: false };
         globalThis.Object.defineProperty(message, MESSAGE_TYPE, { enumerable: false, value: this });
         if (value !== undefined)
             reflectionMergePartial<Response>(this, message, value);
@@ -396,6 +401,9 @@ class Response$Type extends MessageType<Response> {
                     break;
                 case /* string RequestId = 10 [json_name = "RequestId"];*/ 10:
                     message.requestId = reader.string();
+                    break;
+                case /* bool Retry = 11 [json_name = "Retry"];*/ 11:
+                    message.retry = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -439,6 +447,9 @@ class Response$Type extends MessageType<Response> {
         /* string RequestId = 10 [json_name = "RequestId"]; */
         if (message.requestId !== "")
             writer.tag(10, WireType.LengthDelimited).string(message.requestId);
+        /* bool Retry = 11 [json_name = "Retry"]; */
+        if (message.retry !== false)
+            writer.tag(11, WireType.Varint).bool(message.retry);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
