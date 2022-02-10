@@ -170,7 +170,7 @@ async function prodInit(handler) {
             }
         }
     });
-    setTimeout(() => {
+    setInterval(() => {
         nc.publish("sie-heartbeat", Buffer.from(JSON.stringify({
             Uptime: Math.round((Date.now() - startTime) / 1000),
             Name: target,
