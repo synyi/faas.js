@@ -5,7 +5,7 @@
   "main": "./dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "npm run proto && rm -r dist/* && tsc",
+    "build": "npm run proto && rm -rf ./dist/* && tsc",
     "proto": "npx protoc --ts_out ./proto --proto_path proto proto/event.proto",
     "pub": "npm run build && npm version patch && npm publish"
   },
