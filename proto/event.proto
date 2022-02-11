@@ -1,8 +1,7 @@
 syntax = "proto3";
 package proto;
-enum EventType {
-  HTTP = 0;
-}
+
+enum EventType { HTTP = 0; }
 enum BodyType {
   Raw = 0;
   LINK = 1;
