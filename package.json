@@ -12,6 +12,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "@protobuf-ts/runtime": "^2.1.0",
     "nats": "^2.4.0"
