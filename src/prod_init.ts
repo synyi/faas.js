@@ -1,96 +1,13 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.init = void 0;
-const event_1 = require("./proto/event");
-const nats = require("nats");
-const nats_1 = require("nats");
-function buildHeaders(h) {
-    const out = [];
-    for (let [k, v] of h.entries()) {
-        out.push(k, v);
-    }
-    return out;
-}
-class EventCtx {
-    constructor(event, target) {
-        this.event = event;
-        this.reqHeaders = new Map();
-        this.respHeaders = new Map();
-        this.resp = {
-            eventId: event.eventId,
-            requestId: event.requestId,
-            status: 200,
-            body: null,
-            contentType: null,
-            bodyType: event_1.BodyType.Raw,
-            headers: [],
-            usedTime: 0,
-            time: 0n,
-            subject: target,
-            retry: false
-        };
-        for (let i = 0; i < event.headers.length / 2; i++) {
-            this.reqHeaders.set(event.headers[2 * i], event.headers[2 * i + 1]);
-        }
-    }
-    getRequestHeader(key) {
-        return this.reqHeaders.get(key);
-    }
-    setResponseHeader(key, value) {
-        this.respHeaders.set(key, value);
-    }
-    response(status, body) {
-        if (typeof body == "string") {
-            this.resp.body = Buffer.from(body, 'utf8');
-            this.setResponseHeader("content-type", "text/plain;charset=utf8");
-        }
-        else if (body instanceof ArrayBuffer) {
-            this.resp.body = new Uint8Array(body);
-        }
-        else if (body instanceof Buffer) {
-            this.resp.body = body;
-        }
-        else {
-            this.resp.body = Buffer.from(JSON.stringify(body), 'utf8');
-            this.setResponseHeader("content-type", "application/json");
-        }
-        this.resp.status = status;
-        this.setResponseHeader("content-length", this.resp.body.byteLength);
-        this.sender();
-    }
-    // error(status: number, err: any) {
-    //     if (status < 200 || status > 599) {
-    //         status = 500
-    //     }
-    //     this.response(status,err)
-    // }
-    getResponseBinary() {
-        this.resp.headers = buildHeaders(this.respHeaders);
-        return event_1.Response.toBinary(this.resp);
-    }
-    needRetry(reason) {
-        this.retry(reason);
-    }
-}
-async function init(handler) {
-    const mode = process.env["MODE"];
-    if (mode == "prod") {
-        await prodInit(handler);
-    }
-    else if (mode == "test") {
-        await testInit(handler);
-    }
-    else {
-        await localInit(handler);
-    }
-}
-exports.init = init;
-function localInit(handler) {
-}
-const nuid = new nats_1.Nuid();
-const clientId = nuid.next();
-const startTime = Date.now();
-async function prodInit(handler) {
+import { consumerOpts, Nuid } from "nats";
+import { Event } from "../proto/event";
+import { EventCtx } from "./event_ctx";
+import * as nats from 'nats';
+
+const nuid = new Nuid()
+const clientId = nuid.next()
+const startTime = Date.now()
+
+export async function prodInit(handler: (event: EventCtx) => Promise<any>) {
     const target = process.env["FAAS_TARGET"];
     const natsUrl = process.env['NATS_URL'];
     const timeout = process.env['FAAS_TIMEOUT'];
@@ -111,17 +28,16 @@ async function prodInit(handler) {
     const routine = (async function () {
         while (true) {
             // const iter = await js.fetch("faas_event", durable, {batch: 1, expires: 10000});
-            const opts = (0, nats_1.consumerOpts)();
+            const opts = consumerOpts();
             opts.durable(durable);
             opts.queue("dg." + stream);
             let iter = await js.subscribe(stream, opts);
             for await (const m of iter) {
-                let event;
+                let event: Event;
                 const start = Date.now();
                 try {
-                    event = event_1.Event.fromBinary(m.data);
-                }
-                catch (e) {
+                    event = Event.fromBinary(m.data);
+                } catch (e) {
                     console.error(e);
                     m.term();
                 }
@@ -135,13 +51,12 @@ async function prodInit(handler) {
                         c.resp.usedTime = now - start;
                         const d = c.getResponseBinary();
                         nc.publish("faas.response." + c.event.senderId, d);
-                    }
-                    catch (e) {
+                    } catch (e) {
                         console.error(e);
                         m.term();
                     }
                 };
-                c.retry = (reason) => {
+                c.retry = (reason: string) => {
                     c.resp.retry = true;
                     c.response(500, reason);
                     m.nak();
@@ -158,8 +73,7 @@ async function prodInit(handler) {
                         c.response(200, result);
                     }
                     m.ack();
-                }
-                catch (e) {
+                } catch (e) {
                     console.error(e);
                     if (!sent) {
                         c.response(500, e.toString());
@@ -187,10 +101,7 @@ async function prodInit(handler) {
                 routine();
             }
         }
-    }
-    else {
+    } else {
         routine();
     }
-}
-function testInit(handler) {
 }
