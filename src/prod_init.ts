@@ -1,6 +1,6 @@
-import { consumerOpts, Nuid } from "nats";
-import { Event } from "../proto/event";
-import { EventCtx } from "./event_ctx";
+import {consumerOpts, Nuid} from "nats";
+import {Event} from "../proto/event";
+import {EventCtx} from "./event_ctx";
 import * as nats from 'nats';
 
 const nuid = new Nuid()
@@ -96,8 +96,11 @@ export async function prodInit(handler: (event: EventCtx) => Promise<any>) {
     const parallel = process.env['FAAS_CONCURRENT'];
     if (parallel) {
         let p = +parallel;
-        if (p > 1) {
-            for (let i = 0; i < 10; i++) {
+        if (p < 1) {
+            p = 1
+        }
+        if (p >= 1) {
+            for (let i = 0; i < p; i++) {
                 routine();
             }
         }
