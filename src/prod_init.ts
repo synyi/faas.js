@@ -30,6 +30,9 @@ export async function prodInit(handler: (event: EventCtx) => Promise<any>) {
             // const iter = await js.fetch("faas_event", durable, {batch: 1, expires: 10000});
             const opts = consumerOpts();
             opts.durable(durable);
+            opts.manualAck();
+            opts.ackExplicit();
+            opts.deliverTo("dg." + stream);
             opts.queue("dg." + stream);
             let iter = await js.subscribe(stream, opts);
             for await (const m of iter) {
